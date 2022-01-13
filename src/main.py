@@ -45,7 +45,7 @@ def handle_hello():
 def handle_get_planets():
     #request satrwars' api
     response = requests.get('https://www.swapi.tech/api/planets?page=1&limit=1000')
-    response = response.json
+    response = response.json()
     result = response['results']
 
     return jsonify(result), 200
