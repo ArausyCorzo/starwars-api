@@ -2,6 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 import os
+import requests
 from flask import Flask, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
@@ -38,6 +39,17 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+
+#GET all planets
+@app.route('/planets', methods=['GET'])
+def handle_get_planets():
+    #request satrwars' api
+    response = requests.get('https://www.swapi.tech/api/planets?page=1&limit=1000')
+    response = response.json
+    result = response['results']
+
+    return jsonify(result), 200
+
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':

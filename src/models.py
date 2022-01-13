@@ -7,7 +7,7 @@ class User(db.Model):
     user_name = db.Column(db.String(30), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(80), unique=False, nullable=False)
-    favorites = db.relationship("Favorites", backref="user", uselist=True)
+    favorites = db.relationship("Favorite", backref="user", uselist=True)
 
     def serialize(self):
         return {
@@ -16,7 +16,7 @@ class User(db.Model):
             # do not serialize the password, its a security breach
         }
 
-class Favorites(db.Model):
+class Favorite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(30), unique=True, nullable=False)
     url = db.Column(db.String(150), nullable=False)
@@ -26,3 +26,4 @@ class Favorites(db.Model):
         "url",
         name = "unique_favorite_user"
     ),)
+
