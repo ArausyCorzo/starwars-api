@@ -27,3 +27,9 @@ class Favorite(db.Model):
         name = "unique_favorite_user"
     ),)
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            # do not serialize the password, its a security breach
+        }

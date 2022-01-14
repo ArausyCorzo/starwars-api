@@ -9,7 +9,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Favorite
 #from models import Person
 
 app = Flask(__name__)
@@ -24,7 +24,10 @@ setup_admin(app)
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
-    return jsonify(error.to_dict()), error.status_code
+    return jsonify(error.to_dict()), error.status_code 
+
+def swapi_to_localhost(URL_swapi):
+    return URL_swapi.replace("https://www.swapi.tech/api/", "https://3000-pink-vulture-dflm8tzj.ws-us25.gitpod.io/")
 
 # generate sitemap with all your endpoints
 @app.route('/')
@@ -41,15 +44,36 @@ def handle_hello():
     return jsonify(response_body), 200
 
 #GET all planets
-@app.route('/planets', methods=['GET'])
-def handle_get_planets():
+@app.route('/<string:nature>', methods=['GET'])
+def handle_get_natures(nature):
     #request satrwars' api
-    response = requests.get('https://www.swapi.tech/api/planets?page=1&limit=1000')
-    response = response.json()
-    result = response['results']
+    if nature == "planets" or nature == "people" or nature == "vehicles":
+        response = requests.get(f"https://www.swapi.tech/api/{nature}?page=1&limit=1000")
+        response = response.json()
+        results = response['results']
 
-    return jsonify(result), 200
+        for result in results:
+            result.update(url = swapi_to_localhost(result["url"]))
+        return jsonify(results), 200
 
+@app.route('/favorites/<string:nature>', methods=['POST'])
+def handle_favorite(nature):
+    uid = request.json["uid"]
+    name = request.json["name"]
+    user_id = request.json["user_id"]
+    new_favorite = Favorite(
+        user_id = user_id,
+        name = name, 
+        url = f"https://www.swapi.tech/api/{nature}/{uid}"
+    )
+
+    db.session.add(new_favorite)
+    try:
+        db.session.commit()
+        return jsonify(new_favorite.serialize()), 201
+    except Exception as error:
+        db.session.rollback()
+        return jsonify(error.args), 500
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
