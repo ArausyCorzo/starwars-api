@@ -10,7 +10,7 @@ from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, User, Favorite
-from flask_jwt_extended import JWTManager, create_access_token
+from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
 #from models import Person
 
 app = Flask(__name__)
@@ -83,12 +83,13 @@ def handle_singin():
 
 
 @app.route('/favorites/<string:nature>', methods=['POST'])
+@jwt_required()
 def handle_favorite(nature):
     uid = request.json["uid"]
     name = request.json["name"]
-    user_id = request.json["user_id"]
+    #user_id = request.json["user_id"]
     new_favorite = Favorite(
-        user_id = user_id,
+        user_id = get_jwt_identity(),
         name = name, 
         url = f"https://www.swapi.tech/api/{nature}/{uid}"
     )
@@ -111,7 +112,18 @@ def handle_delete_favorite(favorite_id):
         else:
             return jsonify({"message": "oops, method does not work, please try again"}), 500
     else:
-        return jsonify({"message": "oops, not found"}), 404        
+        return jsonify({"message": "oops, not found"}), 404   
+
+@app.route('/favorites', methods=['GET'])
+@jwt_required()
+def handle_get_favorites_by_user():
+    user_id = get_jwt_identity()
+    favorites = Favorite.query.filter_by(user_id = user_id)
+    response = []
+    
+    for favorite in favorites:
+        response.append(favorite.serialize())
+    return jsonify(response), 200
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
