@@ -103,7 +103,7 @@ def handle_favorite(nature):
 
 @app.route('/favorite/<int:favorite_id>', methods=['DELETE'])
 def handle_delete_favorite(favorite_id):
-    favorite = Favorite.query.filter_by(favorite_id).one_or_none()
+    favorite = Favorite.query.filter_by(id = favorite_id).one_or_none()
     if favorite is not None:
         favorite_delete = favorite.delete()
         if favorite_delete == True:
