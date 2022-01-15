@@ -9,12 +9,25 @@ class User(db.Model):
     password = db.Column(db.String(80), unique=False, nullable=False)
     favorites = db.relationship("Favorite", backref="user", uselist=True)
 
+    @classmethod
+    def create_user(cls, new_user):
+        new_user = cls(**new_user)
+        db.session.add(new_user)
+        try:
+            db.session.commit()
+            return new_user
+        except Exception as error:
+            db.session.rollback()   
+            print(error.args)
+            return None
+
     def serialize(self):
         return {
             "id": self.id,
             "email": self.email,
             # do not serialize the password, its a security breach
         }
+
 
 class Favorite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -33,3 +46,12 @@ class Favorite(db.Model):
             "name": self.name,
             # do not serialize the password, its a security breach
         }
+
+    def delete(self):
+        db.session.delete(self)
+        try:
+            db.session.commit()
+            return True    
+        except Exception as error:
+            db.session.rollback()
+            return False

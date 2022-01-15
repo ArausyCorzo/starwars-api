@@ -10,12 +10,15 @@ from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, User, Favorite
+from flask_jwt_extended import JWTManager, create_access_token
 #from models import Person
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_CONNECTION_STRING')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = os.environ.get('FLASK_APP_KEY')
+jwt = JWTManager(app)
 MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
@@ -56,6 +59,29 @@ def handle_get_natures(nature):
             result.update(url = swapi_to_localhost(result["url"]))
         return jsonify(results), 200
 
+
+@app.route('/singup', methods=['POST'])
+def handle_singup():
+    body = request.json
+    new_user = User.create_user(body)
+    if new_user is not None:
+        return jsonify(new_user.serialize()), 201
+    else:
+        return({"message": "oops, could not create user :(, please try again"}), 500 
+
+
+@app.route('/singin', methods=['POST'])
+def handle_singin():
+    email = request.json.get("email", None)
+    password = request.json.get("password", None)
+    user = User.query.filter_by(email = email, password = password).one_or_none()
+    if user is not None:
+        token = create_access_token(identity = user.id)
+        return jsonify({"token": token, "user_id": user.id}), 200
+    else:
+        jsonify({"message": "oops, bad credentials, please try again"}), 401
+
+
 @app.route('/favorites/<string:nature>', methods=['POST'])
 def handle_favorite(nature):
     uid = request.json["uid"]
@@ -74,6 +100,18 @@ def handle_favorite(nature):
     except Exception as error:
         db.session.rollback()
         return jsonify(error.args), 500
+
+@app.route('/favorite/<int:favorite_id>', methods=['DELETE'])
+def handle_delete_favorite(favorite_id):
+    favorite = Favorite.query.filter_by(favorite_id).one_or_none()
+    if favorite is not None:
+        favorite_delete = favorite.delete()
+        if favorite_delete == True:
+            return jsonify([]), 204
+        else:
+            return jsonify({"message": "oops, method does not work, please try again"}), 500
+    else:
+        return jsonify({"message": "oops, not found"}), 404        
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
